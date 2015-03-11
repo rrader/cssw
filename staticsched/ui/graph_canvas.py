@@ -1,6 +1,7 @@
 from tkinter import *
-from staticsched.raw_graph import Graph
+from tkinter.ttk import *
 
+from staticsched.graph_analytics.raw_graph import Graph
 from staticsched.ui.notification_consts import *
 from staticsched.ui.graph_elements.graph import GraphDrawController
 from staticsched.ui.notifications import notify, unsubscribe_all
@@ -89,8 +90,8 @@ class GraphCanvas(Canvas):
     def reset_marks(self):
         self.graph.reset_marks()
 
-    def mark_nodes_red(self, node_list):
-        self.graph.mark_nodes_red(node_list)
+    def mark_nodes(self, node_list, color):
+        self.graph.mark_nodes(node_list, color)
 
 
 class CanvasFrame(Frame):
@@ -110,5 +111,5 @@ class CanvasFrame(Frame):
     def reset_marks(self):
         self.canvas.reset_marks()
 
-    def mark_nodes(self, node_list):
-        self.canvas.mark_nodes_red(node_list)
+    def mark_nodes(self, node_list, color="red"):
+        self.canvas.mark_nodes(node_list, color=color)

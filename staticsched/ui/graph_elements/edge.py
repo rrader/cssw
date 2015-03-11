@@ -80,13 +80,16 @@ class EdgeDrawController:
         self.canvas.itemconfig(self._line, fill="blue")
 
     def deselect(self):
-        self.canvas.itemconfig(self._line, fill="black")
+        self.canvas.itemconfig(self._line, fill=self.get_default_color())
+
+    def get_default_color(self):
+        return "black"
 
 
 class GraphEdgeDrawController(EdgeDrawController):
     def create_line(self, coords):
         return self.canvas.create_line(*coords,
-                                       width=2, fill='black',
+                                       width=2, fill=self.get_default_color(),
                                        tags=(self.get_tag(), self.get_tag() + "_l", "line", "edge"))
 
     def update_edge(self, msg):
@@ -97,9 +100,12 @@ class GraphEdgeDrawController(EdgeDrawController):
         super().create_edge()
         self.update_edge(None)
 
+    def get_default_color(self):
+        return "green"
+
 
 class DAGEdgeDrawController(EdgeDrawController):
     def create_line(self, coords):
         return self.canvas.create_line(*coords,
-                                       width=2, fill='black', arrow="last",
+                                       width=2, fill=self.get_default_color(), arrow="last",
                                        tags=(self.get_tag(), self.get_tag() + "_l", "line", "edge"))

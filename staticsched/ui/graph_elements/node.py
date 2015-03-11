@@ -88,7 +88,7 @@ class NodeDrawController:
 
     def deselect(self):
         shape = self.canvas.find_withtag(self.get_tag_shape())
-        self.canvas.itemconfig(shape, outline="black")
+        self.canvas.itemconfig(shape, outline=self.get_default_color())
 
     def select(self):
         shape = self.canvas.find_withtag(self.get_tag_shape())
@@ -96,11 +96,14 @@ class NodeDrawController:
 
     def reset_mark(self):
         shape = self.canvas.find_withtag(self.get_tag_shape())
-        self.canvas.itemconfig(shape, outline="black")
+        self.canvas.itemconfig(shape, outline=self.get_default_color())
 
-    def mark(self):
+    def mark(self, color):
         shape = self.canvas.find_withtag(self.get_tag_shape())
-        self.canvas.itemconfig(shape, outline="red")
+        self.canvas.itemconfig(shape, outline=color)
+
+    def get_default_color(self):
+        return "black"
 
 
 class DAGNodeDrawController(NodeDrawController):
@@ -132,11 +135,14 @@ class GraphNodeDrawController(NodeDrawController):
     def create_shape(self):
         x, y, rad = self.node.x, self.node.y, NODE_RADIUS
         tag = self.get_tag()
-        self._shape = self.canvas.create_rectangle(x-self.x_rad, y-rad, x+self.x_rad, y+rad,
-                                                   width=2, fill='white',
-                                                   tags=(tag, self.get_tag_shape(), "node", "node_shape"))
+        self._shape = self.canvas.create_oval(x-self.x_rad, y-rad, x+self.x_rad, y+rad,
+                                              width=4, fill="white", outline=self.get_default_color(),
+                                              tags=(tag, self.get_tag_shape(), "node", "node_shape"))
 
         self.canvas.after(ANIMATION_TIME, self.animate_showing)
+
+    def get_default_color(self):
+        return "green"
 
     def draw_info(self):
         x, y, rad = self.node.x, self.node.y, NODE_RADIUS

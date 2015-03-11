@@ -4,7 +4,7 @@ from staticsched.ui.graph_elements.node import DAGNodeDrawController, GraphNodeD
 from staticsched.ui.notification_consts import *
 from staticsched.ui.notifications import notify, subscribe
 
-from staticsched.raw_graph import DAG, Graph, Node, Edge
+from staticsched.graph_analytics.raw_graph import DAG, Graph, Node, Edge
 
 FAKE_NODE_ID = "fake_node_id"
 
@@ -27,6 +27,10 @@ class GraphDrawController:
         subscribe(FAKE_NODE_DRAG_EVENT, self.fake_node_drag, ns=self.ns)
         subscribe(NODE_DELETED, self.node_deleted, ns=self.ns)
         subscribe(EDGE_DELETED, self.edge_deleted, ns=self.ns)
+        if self.graph.is_directed():
+            self.EdgeDrawController = DAGEdgeDrawController
+        else:
+            self.EdgeDrawController = GraphEdgeDrawController
 
     def on_connect_start(self, node_id):
         node = self.nodes[node_id].node
@@ -35,7 +39,7 @@ class GraphDrawController:
 
         self._fake_node.x, self._fake_node.y = node.x, node.y
         edge = Edge(node, self._fake_node, -1)
-        self._fake_edge = GraphEdgeDrawController(self.canvas, edge, target_offset=False, ns=self.ns)
+        self._fake_edge = self.EdgeDrawController(self.canvas, edge, target_offset=False, ns=self.ns)
 
     def on_connect_end(self, node):
         self.cancel_arrow_drag()
@@ -119,7 +123,7 @@ class GraphDrawController:
         for node in self.nodes.values():
             node.reset_mark()
 
-    def mark_nodes_red(self, node_list):
+    def mark_nodes(self, node_list, color):
         for node_id in node_list:
             if node_id in self.nodes:
-                self.nodes[node_id].mark()
+                self.nodes[node_id].mark(color)

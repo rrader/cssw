@@ -38,18 +38,28 @@ class GeneralGraph:
         for edge in graph_info["edges"]:
             target_graph.add_edge(**edge)
 
+    def is_directed(self):
+        raise NotImplemented()
+
 
 class DAG(GeneralGraph):
-    def get_neighbours(self, node):
+    def get_neighbours(self, node, forward):
         neighbours = []
         for edge in self.edges:
-            if edge.source.n_id == node.n_id:
-                neighbours.append(self.nodes[edge.target.n_id])
+            if forward:
+                if edge.source.n_id == node.n_id:
+                    neighbours.append(self.nodes[edge.target.n_id])
+            else:
+                if edge.target.n_id == node.n_id:
+                    neighbours.append(self.nodes[edge.source.n_id])
         return neighbours
+
+    def is_directed(self):
+        return True
 
 
 class Graph(GeneralGraph):
-    def get_neighbours(self, node):
+    def get_neighbours(self, node, forward):
         neighbours = []
         for edge in self.edges:
             if edge.source.n_id == node.n_id:
@@ -57,6 +67,9 @@ class Graph(GeneralGraph):
             if edge.target.n_id == node.n_id:
                 neighbours.append(self.nodes[edge.source.n_id])
         return neighbours
+
+    def is_directed(self):
+        return False
 
 
 class Node:

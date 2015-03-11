@@ -1,12 +1,14 @@
 import json
 from tkinter import *
 from tkinter import simpledialog, filedialog, ttk, messagebox
-from staticsched.ui.graph_canvas import CanvasFrame
 
+from staticsched.ui.graph_canvas import CanvasFrame
 from staticsched.ui.notification_consts import *
 from staticsched.ui.notifications import notify, subscribe
-from staticsched.analyse import find_all_cycles, is_connected
-from staticsched.raw_graph import DAG, Graph
+from staticsched.graph_analytics.analyse import find_all_cycles, is_connected, find_critical_path, generate_queue_3, \
+    find_all_critical_paths, generate_queue_4, generate_queue_16
+from staticsched.graph_analytics.raw_graph import DAG, Graph
+from staticsched.ui.table_window import TableWindow
 
 
 def request_edge_weight(edge, ns):
@@ -33,6 +35,8 @@ class UI:
         self.build()
         subscribe(EDGE_WEIGHT_REQUEST, request_edge_weight, ns="ALL")
         subscribe(NODE_WEIGHT_REQUEST, request_node_weight, ns="ALL")
+
+        self.open_dag()
 
     def build(self):
         self.notebook = ttk.Notebook(self.root)
@@ -71,6 +75,10 @@ class UI:
         self.menu.add_cascade(label="DAG", menu=dag_menu)
         dag_menu.add_command(label="Check", command=self.dag_check)
         dag_menu.add_command(label="Reset marks", command=self.dag_reset_marks)
+        dag_menu.add_command(label="Find critical path", command=self.find_critical_path)
+        dag_menu.add_command(label="Generate queue (method #3)", command=self.queue_3)
+        dag_menu.add_command(label="Generate queue (method #4)", command=self.queue_4)
+        dag_menu.add_command(label="Generate queue (method #16)", command=self.queue_16)
 
         dag_menu = Menu(self.menu)
         self.menu.add_cascade(label="System graph", menu=dag_menu)
@@ -82,7 +90,7 @@ class UI:
         self.dag_frame.reset_marks()
         cycle_found = False
         for cycle in find_all_cycles(self.task_dag):
-            self.dag_frame.mark_nodes(cycle)
+            self.dag_frame.mark_nodes(cycle, color="red")
             cycle_found = True
         if cycle_found:
             messagebox.showerror("Cycle check", "CYCLE FOUND")
@@ -92,7 +100,7 @@ class UI:
     def system_check(self):
         self.system_frame.reset_marks()
         if not is_connected(self.system_graph):
-            self.system_frame.mark_nodes(self.system_graph.nodes.keys())
+            self.system_frame.mark_nodes(self.system_graph.nodes.keys(), color="red")
             messagebox.showerror("Connectivity check", "NOT CONNECTED")
         else:
             messagebox.showinfo("Connectivity check", "OK")
@@ -102,6 +110,35 @@ class UI:
 
     def system_reset_marks(self):
         self.system_frame.reset_marks()
+
+    def find_critical_path(self):
+        length, path = find_critical_path(self.task_dag)
+        self.dag_frame.mark_nodes(path, color="green")
+        TableWindow(self.root, ["node"], [[node] for node in path], "Critical path")
+
+    def queue_3(self):
+        paths = find_all_critical_paths(self.task_dag, forward=True, weight_based=True)
+        queue = generate_queue_3(self.task_dag)
+        TableWindow(self.root, ["node", "Tcrit<down>", "Critical path"],
+                    [[node, paths[node][0], paths[node][1]] for node in queue],
+                    "Queue #3")
+
+    def queue_4(self):
+        paths = find_all_critical_paths(self.task_dag, forward=True, weight_based=False)
+        queue = generate_queue_4(self.task_dag)
+
+        def get_connectivity(node_id):
+            return len(self.task_dag.get_neighbours(self.task_dag.nodes[node_id]))
+        TableWindow(self.root, ["node", "Ncrit<down>", "Connectivity", "Critical path"],
+                    [[node, paths[node][0], get_connectivity(node), paths[node][1]] for node in queue],
+                    "Queue #4")
+
+    def queue_16(self):
+        paths = find_all_critical_paths(self.task_dag, forward=False, weight_based=True)
+        queue = generate_queue_16(self.task_dag)
+        TableWindow(self.root, ["node", "Tcrit<up>", "Critical path"],
+                    [[node, paths[node][0], paths[node][1]] for node in queue],
+                    "Queue #16")
 
     def save_dag(self):
         saving_file = filedialog.asksaveasfile()
