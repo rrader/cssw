@@ -6,8 +6,9 @@ from staticsched.ui.widgets.graph_canvas import CanvasFrame
 from staticsched.ui.windows.graph_params_window import GraphParamsWindow
 from staticsched.ui.notification_consts import *
 from staticsched.ui.notifications import notify, subscribe
-from staticsched.graph_analytics.analyse import find_all_cycles, is_connected, find_critical_path, generate_queue_3, \
-    find_all_critical_paths, generate_queue_4, generate_queue_16
+from staticsched.graph_analytics.analyse import find_all_cycles, is_connected, find_critical_path, \
+    find_all_critical_paths
+from staticsched.graph_analytics.task_queues import QueueGenerationPolicy3, QueueGenerationPolicy4, QueueGenerationPolicy16
 from staticsched.graph_analytics.raw_graph import DAG, Graph
 from staticsched.ui.table_window import TableWindow
 
@@ -122,14 +123,15 @@ class UI:
 
     def queue_3(self):
         paths = find_all_critical_paths(self.task_dag, forward=True, weight_based=True)
-        queue = generate_queue_3(self.task_dag)
+        queue = QueueGenerationPolicy3().get_queue(self.task_dag)
+        print(queue)
         TableWindow(self.root, ["node", "Tcrit<down>", "Critical path"],
                     [[node, paths[node][0], paths[node][1]] for node in queue],
                     "Queue #3")
 
     def queue_4(self):
         paths = find_all_critical_paths(self.task_dag, forward=True, weight_based=False)
-        queue = generate_queue_4(self.task_dag)
+        queue = QueueGenerationPolicy4().get_queue(self.task_dag)
 
         def get_connectivity(node_id):
             return len(self.task_dag.get_neighbours(self.task_dag.nodes[node_id], forward=True) + self.task_dag.get_neighbours(self.task_dag.nodes[node_id], forward=False))
@@ -139,7 +141,7 @@ class UI:
 
     def queue_16(self):
         paths = find_all_critical_paths(self.task_dag, forward=False, weight_based=True)
-        queue = generate_queue_16(self.task_dag)
+        queue = QueueGenerationPolicy16().get_queue(self.task_dag)
         TableWindow(self.root, ["node", "Tcrit<up>", "Critical path"],
                     [[node, paths[node][0], paths[node][1]] for node in queue],
                     "Queue #16")

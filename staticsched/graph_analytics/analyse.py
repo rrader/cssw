@@ -89,34 +89,6 @@ def find_all_critical_paths(graph, forward, weight_based):
     return all_paths
 
 
-def generate_queue_3(graph):
-    paths = find_all_critical_paths(graph, forward=True, weight_based=True)
-
-    def get_weight(item):
-        node_id, (weight, path) = item
-        return weight
-    return [path[0] for path in sorted(paths.items(), key=get_weight, reverse=True)]
-
-
-def generate_queue_4(graph):
-    paths = find_all_critical_paths(graph, forward=True, weight_based=False)
-
-    def get_weight(item):
-        node_id, (weight, path) = item
-        node = graph.nodes[node_id]
-        return weight, len(graph.get_neighbours(node, forward=True) + graph.get_neighbours(node, forward=False))
-    return [path[0] for path in sorted(paths.items(), key=get_weight, reverse=True)]
-
-
-def generate_queue_16(graph):
-    paths = find_all_critical_paths(graph, forward=False, weight_based=True)
-
-    def get_weight(item):
-        node_id, (weight, path) = item
-        return weight
-    return [path[0] for path in sorted(paths.items(), key=get_weight)]
-
-
 def find_critical_path(graph, forward=True, weight_based=True):
     all_paths = find_all_critical_paths(graph, forward, weight_based)
     return max(all_paths.values())
