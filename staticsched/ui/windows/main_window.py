@@ -2,7 +2,8 @@ import json
 from tkinter import *
 from tkinter import simpledialog, filedialog, ttk, messagebox
 
-from staticsched.ui.graph_canvas import CanvasFrame
+from staticsched.ui.widgets.graph_canvas import CanvasFrame
+from staticsched.ui.windows.graph_params_window import GraphParamsWindow
 from staticsched.ui.notification_consts import *
 from staticsched.ui.notifications import notify, subscribe
 from staticsched.graph_analytics.analyse import find_all_cycles, is_connected, find_critical_path, generate_queue_3, \
@@ -35,6 +36,7 @@ class UI:
         self.build()
         subscribe(EDGE_WEIGHT_REQUEST, request_edge_weight, ns="ALL")
         subscribe(NODE_WEIGHT_REQUEST, request_node_weight, ns="ALL")
+        subscribe(GRAPH_GENERATED, self.update_dag, ns="DAG_GENERATOR")
 
         self.open_dag()
 
@@ -73,6 +75,8 @@ class UI:
 
         dag_menu = Menu(self.menu)
         self.menu.add_cascade(label="DAG", menu=dag_menu)
+        dag_menu.add_command(label="Generate random graph", command=self.generate_graph)
+        dag_menu.add_separator()
         dag_menu.add_command(label="Check", command=self.dag_check)
         dag_menu.add_command(label="Reset marks", command=self.dag_reset_marks)
         dag_menu.add_command(label="Find critical path", command=self.find_critical_path)
@@ -128,7 +132,7 @@ class UI:
         queue = generate_queue_4(self.task_dag)
 
         def get_connectivity(node_id):
-            return len(self.task_dag.get_neighbours(self.task_dag.nodes[node_id]))
+            return len(self.task_dag.get_neighbours(self.task_dag.nodes[node_id], forward=True) + self.task_dag.get_neighbours(self.task_dag.nodes[node_id], forward=False))
         TableWindow(self.root, ["node", "Ncrit<down>", "Connectivity", "Critical path"],
                     [[node, paths[node][0], get_connectivity(node), paths[node][1]] for node in queue],
                     "Queue #4")
@@ -139,6 +143,9 @@ class UI:
         TableWindow(self.root, ["node", "Tcrit<up>", "Critical path"],
                     [[node, paths[node][0], paths[node][1]] for node in queue],
                     "Queue #16")
+
+    def generate_graph(self):
+        GraphParamsWindow(self.root)
 
     def save_dag(self):
         saving_file = filedialog.asksaveasfile()
@@ -155,6 +162,10 @@ class UI:
 
             self.task_dag = DAG()
             self.dag_frame.load_new_graph(self.task_dag, serialized)
+
+    def update_dag(self, serialized):
+        self.task_dag = DAG()
+        self.dag_frame.load_new_graph(self.task_dag, serialized)
 
     def save_sg(self):
         saving_file = filedialog.asksaveasfile()
@@ -177,4 +188,5 @@ class UI:
         self.dag_frame.cleanup()
 
     def show(self):
+        self.root.wm_title("Static Scheduler")
         self.root.mainloop()

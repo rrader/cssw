@@ -76,7 +76,7 @@ def find_all_critical_paths(graph, forward, weight_based):
             return max(ways, key=lambda x: x[0], default=(0, []))
     else:
         def aggregation(ways):
-            return min(ways, key=lambda x: x[0], default=(0, []))
+            return max(ways, key=lambda x: x[0], default=(0, []))
 
     if weight_based:
         def transformation(current_node, length):
@@ -104,7 +104,7 @@ def generate_queue_4(graph):
     def get_weight(item):
         node_id, (weight, path) = item
         node = graph.nodes[node_id]
-        return weight, len(graph.get_neighbours(node))
+        return weight, len(graph.get_neighbours(node, forward=True) + graph.get_neighbours(node, forward=False))
     return [path[0] for path in sorted(paths.items(), key=get_weight, reverse=True)]
 
 

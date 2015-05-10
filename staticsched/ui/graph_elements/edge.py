@@ -47,7 +47,7 @@ class EdgeDrawController:
 
     def mid_coords(self):
         coords = self.get_coords()
-        return coords[0] + (coords[2] - coords[0])/2 + 20, coords[1] + (coords[3] - coords[1])/2 + 20
+        return coords[0] + (coords[2] - coords[0])/2 + 5, coords[1] + (coords[3] - coords[1])/2 + 5
 
     def create_line(self, coords):
         raise NotImplemented()
