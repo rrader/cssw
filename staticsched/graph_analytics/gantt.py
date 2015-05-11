@@ -1,3 +1,4 @@
+from collections import namedtuple
 from itertools import chain
 from staticsched.graph_analytics.raw_graph import Graph
 
@@ -8,15 +9,29 @@ class ScheduledTask:
         self.task_name = task_name
 
 
+SegmentMeta = namedtuple("SegmentMeta", ["source", "out_task", "target", "in_task"])
+
+
 class ScheduledTransmission:
-    def __init__(self, source, target, duration):
+    def __init__(self, source, target, duration, route):
         self.source = source
         self.target = target
         self.duration = duration
+        self.route = route
         self._segments = []
+        self._segment_meta = {}
+        self.source_cpu, self.target_cpu = route[0][0], route[-1][-1]
 
-    def add_segment(self, segment):
-        self._segments.append(segment)
+    def add_segment(self, source, task_outgoing, target, task_incoming):
+        self._segments.append(task_incoming)
+        self._segments.append(task_outgoing)
+
+        segment_info = SegmentMeta(source, task_outgoing, target, task_incoming)
+        self._segment_meta[task_outgoing] = segment_info
+        self._segment_meta[task_incoming] = segment_info
+
+    def get_task_meta(self, task):
+        return self._segment_meta[task]
 
 
 class ScheduledTransmissionSegment:
@@ -28,6 +43,9 @@ class ScheduledTransmissionSegment:
         self.transmission = transmission
         self.direction = direction
 
+    def meta(self):
+        return self.transmission.get_task_meta(self)
+
 
 class Link:
     def __init__(self, link_id, duplex):
@@ -38,7 +56,7 @@ class Link:
     def schedule_transmission(self, transmission, m_time, duration, direction):
         task = ScheduledTransmissionSegment(transmission, m_time, m_time + duration, direction)
         self._io_tasks.append(task)
-        transmission.add_segment(task)
+        return task
 
     def is_link_free(self, m_time, direction):
         for segment in self._io_tasks:
@@ -86,7 +104,7 @@ class CPU:
 
     def schedule_transmission(self, transmission, m_time, duration, direction):
         link = self.any_free_link(m_time, duration, direction)[0]
-        link.schedule_transmission(transmission, m_time, duration, direction)
+        return link.schedule_transmission(transmission, m_time, duration, direction)
 
     def finished_tasks(self, m_time):
         return [task.task_name for task in self._alu_tasks if m_time >= task.range[1]]
@@ -118,18 +136,20 @@ class System:
     def schedule_calculation(self, task_name, m_time, duration, cpu):
         self._cpus[cpu].schedule_calculation(task_name, m_time, duration)
 
-    def schedule_transmission(self, route, m_time, source, target, duration):
-        transmission = ScheduledTransmission(source, target, duration)
+    def schedule_transmission(self, route, m_time, source_task, target_task, duration):
+        transmission = ScheduledTransmission(source_task, target_task, duration, route)
         for segment_source, segment_target in route:
             m_time = self.find_transmission_time_range(transmission, m_time,
                                                        self._cpus[segment_source],
                                                        self._cpus[segment_target])
-            self._cpus[segment_source].schedule_transmission(transmission, m_time,
-                                                             duration,
-                                                             ScheduledTransmissionSegment.OUTGOING)
-            self._cpus[segment_target].schedule_transmission(transmission, m_time,
-                                                             duration,
-                                                             ScheduledTransmissionSegment.INGOING)
+            task_out = self._cpus[segment_source].schedule_transmission(transmission, m_time,
+                                                                        duration,
+                                                                        ScheduledTransmissionSegment.OUTGOING)
+            task_in = self._cpus[segment_target].schedule_transmission(transmission, m_time,
+                                                                       duration,
+                                                                       ScheduledTransmissionSegment.INGOING)
+
+            transmission.add_segment(segment_source, task_in, segment_target, task_out)
             m_time += duration
         return m_time
 

@@ -3,6 +3,15 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator
 
 
+def task_annotation_text(task):
+    return "%s-%s-%s\n[%s>%s]" % (task.transmission.source_cpu,
+                                     task.meta().target,
+                                     task.transmission.target_cpu,
+                                     task.transmission.source.n_id,
+                                     task.transmission.target.n_id
+                                     )
+
+
 def draw_gantt_diagram(system):
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -16,7 +25,7 @@ def draw_gantt_diagram(system):
             duration = task.range[1] - task.range[0]
             ranges.append((task.range[0], duration))
             plt.annotate("%s [%s]" % (task.task_name, duration), (task.range[0] + 0.1, i + 0.1))
-        ax.broken_barh(ranges, (i, 0.3), alpha=.9, facecolors='lightgray')
+        ax.broken_barh(ranges, (i, 0.3), alpha=.5, facecolors='lightgray')
 
         link_height = 0.7 / len(cpu._links)
         for link in cpu._links:
@@ -28,11 +37,12 @@ def draw_gantt_diagram(system):
                     max_time = task.range[1]
                 duration = task.range[1] - task.range[0]
                 ranges.append((task.range[0], duration))
-                plt.annotate("%s->%s" % (task.transmission.source.n_id, task.transmission.target.n_id),
+                plt.annotate(task_annotation_text(task),
                              (task.range[0] + 0.1, i + 0.3 + link_height*link.link_id + 0.05 + link_height/2))
             ax.broken_barh(ranges, (i + 0.3 + link_height*link.link_id + link_height/2, link_height/2),
-                           alpha=.9, facecolors='yellow', hatch="/")
+                           alpha=.5, facecolors='yellow', hatch="/")
 
+            ranges = []
             for task in link._io_tasks:
                 if task.direction == 1:
                     continue
@@ -40,10 +50,10 @@ def draw_gantt_diagram(system):
                     max_time = task.range[1]
                 duration = task.range[1] - task.range[0]
                 ranges.append((task.range[0], duration))
-                plt.annotate("%s->%s" % (task.transmission.source.n_id, task.transmission.target.n_id),
+                plt.annotate(task_annotation_text(task),
                              (task.range[0] + 0.1, i + 0.3 + link_height*link.link_id + 0.05))
             ax.broken_barh(ranges, (i + 0.3 + link_height*link.link_id, link_height/2),
-                           alpha=.9, facecolors='yellow', hatch="\\")
+                           alpha=.5, facecolors='yellow', hatch="\\")
 
     #
     # for x in range(1, cpus+1):

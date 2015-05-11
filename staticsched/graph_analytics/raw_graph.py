@@ -50,6 +50,11 @@ class GeneralGraph:
     def is_directed(self):
         raise NotImplemented()
 
+    def re_enumerate(self):
+        y_sorted_nodes = sorted(self.nodes.values(), key=lambda node: (node.y, node.x))
+        for i, node in enumerate(y_sorted_nodes):
+            node.n_id = str(i)
+
 
 def norm_weight(weight, min_w, max_w):
     if weight < min_w:

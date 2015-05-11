@@ -84,6 +84,7 @@ class UI:
         dag_menu = Menu(self.menu)
         self.menu.add_cascade(label="DAG", menu=dag_menu)
         dag_menu.add_command(label="Generate random graph", command=self.generate_graph)
+        dag_menu.add_command(label="Enumerate", command=self.dag_re_enumerate)
         dag_menu.add_separator()
         dag_menu.add_command(label="Check", command=self.dag_check)
         dag_menu.add_command(label="Reset marks", command=self.dag_reset_marks)
@@ -92,10 +93,11 @@ class UI:
         dag_menu.add_command(label="Generate queue (method #4)", command=self.queue_4)
         dag_menu.add_command(label="Generate queue (method #16)", command=self.queue_16)
 
-        dag_menu = Menu(self.menu)
-        self.menu.add_cascade(label="System graph", menu=dag_menu)
-        dag_menu.add_command(label="Check", command=self.system_check)
-        dag_menu.add_command(label="Reset marks", command=self.system_reset_marks)
+        graph_menu = Menu(self.menu)
+        self.menu.add_cascade(label="System graph", menu=graph_menu)
+        graph_menu.add_command(label="Enumerate", command=self.system_graph_re_enumerate)
+        graph_menu.add_command(label="Check", command=self.system_check)
+        graph_menu.add_command(label="Reset marks", command=self.system_reset_marks)
 
         schedule_menu = Menu(self.menu)
         self.menu.add_cascade(label="Scheduler", menu=schedule_menu)
@@ -173,6 +175,14 @@ class UI:
     def generate_graph(self):
         GraphParamsWindow(self.root)
 
+    def dag_re_enumerate(self):
+        self.task_dag.re_enumerate()
+        self.update_dag(self.task_dag.serialize())
+
+    def system_graph_re_enumerate(self):
+        self.system_graph.re_enumerate()
+        self.update_system_graph(self.system_graph.serialize())
+
     def save_dag(self):
         saving_file = filedialog.asksaveasfile()
         if saving_file:
@@ -195,6 +205,10 @@ class UI:
     def update_dag(self, serialized):
         self.task_dag = DAG()
         self.dag_frame.load_new_graph(self.task_dag, serialized)
+
+    def update_system_graph(self, serialized):
+        self.system_graph = Graph()
+        self.system_frame.load_new_graph(self.system_graph, serialized)
 
     def save_sg(self):
         saving_file = filedialog.asksaveasfile()
