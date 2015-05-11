@@ -1,6 +1,11 @@
 import json
 from tkinter import *
 from tkinter import simpledialog, filedialog, ttk, messagebox
+from staticsched.graph_analytics.cpu_priorities import CohesionCPUPrioritizationPolicy
+from staticsched.graph_analytics.gantt import System
+from staticsched.graph_analytics.router import DFSRouter
+from staticsched.graph_analytics.scheduler import Scheduler
+from staticsched.ui.gantt_ui import draw_gantt_diagram
 
 from staticsched.ui.widgets.graph_canvas import CanvasFrame
 from staticsched.ui.windows.graph_params_window import GraphParamsWindow
@@ -39,7 +44,9 @@ class UI:
         subscribe(NODE_WEIGHT_REQUEST, request_node_weight, ns="ALL")
         subscribe(GRAPH_GENERATED, self.update_dag, ns="DAG_GENERATOR")
 
-        self.open_dag()
+        self.open_dag(open("saved/dag1"))
+        self.open_sg(open("saved/4diag"))
+        self.schedule()
 
     def build(self):
         self.notebook = ttk.Notebook(self.root)
@@ -69,9 +76,9 @@ class UI:
         file_menu = Menu(self.menu)
         self.menu.add_cascade(label="File", menu=file_menu)
         file_menu.add_command(label="Save DAG...", command=self.save_dag)
-        file_menu.add_command(label="Open DAG...", command=self.open_dag)
+        file_menu.add_command(label="Open DAG...", command=self.open_dag_dialog)
         file_menu.add_command(label="Save system graph...", command=self.save_sg)
-        file_menu.add_command(label="Open system graph...", command=self.open_sg)
+        file_menu.add_command(label="Open system graph...", command=self.open_sg_dialog)
         file_menu.add_command(label="Reset", command=self.cleanup)
 
         dag_menu = Menu(self.menu)
@@ -89,6 +96,11 @@ class UI:
         self.menu.add_cascade(label="System graph", menu=dag_menu)
         dag_menu.add_command(label="Check", command=self.system_check)
         dag_menu.add_command(label="Reset marks", command=self.system_reset_marks)
+
+        schedule_menu = Menu(self.menu)
+        self.menu.add_cascade(label="Scheduler", menu=schedule_menu)
+        schedule_menu.add_command(label="Schedule", command=self.schedule)
+
         self.root.config(menu=self.menu)
 
     def dag_check(self):
@@ -146,6 +158,18 @@ class UI:
                     [[node, paths[node][0], paths[node][1]] for node in queue],
                     "Queue #16")
 
+    def schedule(self):
+        system = System(self.system_graph, duplex=True, has_io_cpu=True)
+        router = DFSRouter(self.system_graph)
+
+        scheduler = Scheduler(self.task_dag, self.system_graph,
+                              QueueGenerationPolicy3(),
+                              CohesionCPUPrioritizationPolicy(),
+                              system,
+                              router)
+        scheduler.schedule_dag()
+        draw_gantt_diagram(system)
+
     def generate_graph(self):
         GraphParamsWindow(self.root)
 
@@ -156,8 +180,11 @@ class UI:
             saving_file.write(serialized)
             saving_file.close()
 
-    def open_dag(self):
+    def open_dag_dialog(self):
         opened_file = filedialog.askopenfile()
+        self.open_dag(opened_file)
+
+    def open_dag(self, opened_file):
         if opened_file:
             serialized = json.load(opened_file)
             opened_file.close()
@@ -176,8 +203,11 @@ class UI:
             saving_file.write(serialized)
             saving_file.close()
 
-    def open_sg(self):
+    def open_sg_dialog(self):
         opened_file = filedialog.askopenfile()
+        self.open_sg(opened_file)
+
+    def open_sg(self, opened_file):
         if opened_file:
             serialized = json.load(opened_file)
             opened_file.close()

@@ -72,6 +72,13 @@ class DAG(GeneralGraph):
                     neighbours.append(self.nodes[edge.source.n_id])
         return neighbours
 
+    def edges_to_node(self, node):
+        edges = []
+        for edge in self.edges:
+            if edge.target.n_id == node.n_id:
+                edges.append(edge)
+        return edges
+
     def is_directed(self):
         return True
 

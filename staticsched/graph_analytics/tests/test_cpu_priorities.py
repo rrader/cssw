@@ -25,7 +25,7 @@ class TestCohesionCPUPrioritizationPolicy(TestCase):
         policy = CohesionCPUPrioritizationPolicy()
         priorities = policy.get_priorities(graph)
 
-        self.assertIn(n1, priorities[:2])
-        self.assertIn(n3, priorities[:2])
-        self.assertIn(n0, priorities[2:])
-        self.assertIn(n2, priorities[2:])
+        self.assertIn(n1.n_id, priorities[:2])
+        self.assertIn(n3.n_id, priorities[:2])
+        self.assertIn(n0.n_id, priorities[2:])
+        self.assertIn(n2.n_id, priorities[2:])
