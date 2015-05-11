@@ -86,11 +86,17 @@ class CPU:
         return any(task.task_name == task_name for task in self._alu_tasks)
 
     def is_alu_free(self, m_time):
+        # respect io cpu
         for task in self._alu_tasks:
             start, end = task.range
             if start <= m_time < end:
                 return False
         return True
+
+    def is_alu_free_duration(self, m_time, duration):
+        return all(self.is_alu_free(time)
+                   for time in range(m_time, m_time + duration)
+                   )
 
     def has_free_link(self, m_time, duration, direction):
         return any(link.is_link_free_duration(m_time, duration, direction) for link in self._links)
@@ -133,8 +139,10 @@ class System:
     def cpus_by_scheduled_task(self, task_name):
         return [cpu for cpu in self._cpus.values() if cpu.is_task_scheduled(task_name)]
 
-    def schedule_calculation(self, task_name, m_time, duration, cpu):
-        self._cpus[cpu].schedule_calculation(task_name, m_time, duration)
+    def schedule_calculation(self, task_name, m_time, duration, cpu_id):
+        cpu = self._cpus[cpu_id]
+        m_time = self.find_calculation_time_range(m_time, duration, cpu)
+        cpu.schedule_calculation(task_name, m_time, duration)
 
     def schedule_transmission(self, route, m_time, source_task, target_task, duration):
         transmission = ScheduledTransmission(source_task, target_task, duration, route)
@@ -167,4 +175,10 @@ class System:
                 m_time += 1
                 outgoing_time_found = False
             ingoing_time_found = True
+        return m_time
+
+    @staticmethod
+    def find_calculation_time_range(m_time, duration, cpu):
+        while not cpu.is_alu_free_duration(m_time, duration):
+            m_time += 1
         return m_time

@@ -55,14 +55,6 @@ def draw_gantt_diagram(system):
             ax.broken_barh(ranges, (i + 0.3 + link_height*link.link_id, link_height/2),
                            alpha=.5, facecolors='yellow', hatch="\\")
 
-    #
-    # for x in range(1, cpus+1):
-    #     rang = []
-    #     for t in plan_copy[x-1]:
-    #         rang.append((t[0], t[1] - t[0]))
-    #         plt.annotate("{}>\n{}".format(t[2], t[3]), (t[0] + 0.1, x + 0.6))
-    #     ax.broken_barh(rang, (x+0.5, 0.5), facecolors='yellow')
-
     ax.set_ylim(0, len(system._cpus))
     ax.set_yticks(list(range(len(system._cpus))))
 
@@ -75,7 +67,9 @@ def draw_gantt_diagram(system):
     mng = plt.get_current_fig_manager()
     mng.window.showMaximized()
     plt.legend([Rectangle((0, 0), 1, 1, fc="lightgray"),
-                Rectangle((0, 0), 1, 1, fc="yellow")],
+                Rectangle((0, 0), 1, 1, fc="yellow", hatch="\\"),
+                Rectangle((0, 0), 1, 1, fc="yellow", hatch="/")],
                ["Regular tasks",
-                "Data transfer"])
+                "Data transfer Ingoing",
+                "Data transfer Outgoing"])
     plt.show()

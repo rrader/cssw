@@ -12,7 +12,7 @@ class QueueGenerationPolicy3(BaseQueueGenerationPolicy):
 
         def get_weight(item):
             node_id, (weight, path) = item
-            return weight
+            return weight, node_id
         return [path[0] for path in sorted(paths.items(), key=get_weight, reverse=True)]
 
 
