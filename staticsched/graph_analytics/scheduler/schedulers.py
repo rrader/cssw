@@ -130,4 +130,5 @@ class ModellingNeighbourScheduler(ModellingTransferCPUSelector,
     pass
 
 
-Scheduler = AdvanceNeighbourScheduler
+# Scheduler = AdvanceNeighbourScheduler
+Scheduler = ModellingNeighbourScheduler

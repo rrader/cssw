@@ -4,9 +4,13 @@ from staticsched.graph_analytics.raw_graph import Graph
 
 
 class ScheduledTask:
-    def __init__(self, task_name, start, end):
+    def __init__(self, task_name, start, end, cpu):
         self.range = start, end
         self.task_name = task_name
+        self.cpu = cpu
+
+    def cancel(self):
+        self.cpu.cancel_calculation(self)
 
 
 SegmentMeta = namedtuple("SegmentMeta", ["source", "out_task", "target", "in_task"])
@@ -20,7 +24,7 @@ class ScheduledTransmission:
         self.route = route
         self._segments = []
         self._segment_meta = {}
-        self.source_cpu, self.target_cpu = route[0][0], route[-1][-1]
+        self.source_cpu, self.target_cpu = route[0][0], route[-1][-1],
 
     def add_segment(self, source, task_outgoing, target, task_incoming):
         self._segments.append(task_incoming)
@@ -34,21 +38,38 @@ class ScheduledTransmission:
         return self._segment_meta[task]
 
     def end_time(self):
-        return max(segment.range[1] for segment in self._segments)
+        return max((segment.range[1] for segment in self._segments))
+
+    def cancel(self):
+        for segment in self._segments:
+            segment.cancel()
+
+
+class ScheduledEmptyTransmission(ScheduledTransmission):
+    def __init__(self, source_task, target_task, source_cpu, target_cpu, prev_task_ready_time):
+        super().__init__(source_task, target_task, 0, [(source_cpu, target_cpu)])
+        self.ready_time = prev_task_ready_time
+
+    def end_time(self):
+        return self.ready_time
 
 
 class ScheduledTransmissionSegment:
     INGOING = 0
     OUTGOING = 1
 
-    def __init__(self, transmission, start, end, communication_cpu, direction):
+    def __init__(self, transmission, start, end, communication_cpu, direction, link):
         self.range = start, end
         self.transmission = transmission
         self.direction = direction
         self.communication_cpu = communication_cpu
+        self.link = link
 
     def meta(self):
         return self.transmission.get_task_meta(self)
+
+    def cancel(self):
+        self.link.cancel_transmission(self)
 
 
 class Link:
@@ -60,18 +81,18 @@ class Link:
 
     def schedule_transmission(self, transmission, m_time, duration, direction, communication_cpu):
         task = ScheduledTransmissionSegment(transmission, m_time, m_time + duration,
-                                            communication_cpu, direction)
+                                            communication_cpu, direction, self)
         self._io_tasks.append(task)
         return task
 
-    def is_link_free(self, m_time, direction=None, communication_cpu=None):
-        # if not self.cpu._has_io_cpu and not self.cpu.is_alu_free(m_time):
-        #     return False
+    def cancel_transmission(self, task):
+        self._io_tasks.remove(task)
 
+    def is_link_free(self, m_time, direction=None, communication_cpu=None):
         for segment in self._io_tasks:
             start, end = segment.range
             if start <= m_time < end:
-                if not direction:
+                if direction is None:
                     # disrespect direction/duplex
                     return False
 
@@ -134,8 +155,12 @@ class CPU:
                 if link.is_link_free_duration(m_time, duration, direction, communication_cpu)]
 
     def schedule_calculation(self, task_name, m_time, duration):
-        task = ScheduledTask(task_name, m_time, m_time + duration)
+        task = ScheduledTask(task_name, m_time, m_time + duration, self)
         self._alu_tasks.append(task)
+        return task
+
+    def cancel_calculation(self, task):
+        self._alu_tasks.remove(task)
 
     def get_scheduled_task(self, task_name):
         return [task for task in self._alu_tasks if task.task_name == task_name][0]
@@ -155,6 +180,8 @@ class System:
     def __init__(self, graph: Graph, duplex, has_io_cpu):
         self._graph = graph
         self._cpus = {}
+        self._transmission_sessions = []
+        self._current_session = []
         for node in graph.nodes.values():
             cpu = CPU(cpu_id=node.n_id, links=node.weight, duplex=duplex, has_io_cpu=has_io_cpu)
             self._cpus[node.n_id] = cpu
@@ -174,9 +201,23 @@ class System:
     def schedule_calculation(self, task_name, m_time, duration, cpu_id):
         cpu = self._cpus[cpu_id]
         m_time = self.find_calculation_time_range(m_time, duration, cpu)
-        cpu.schedule_calculation(task_name, m_time, duration)
+        scheduled_task = cpu.schedule_calculation(task_name, m_time, duration)
+        self._current_session.append(scheduled_task)
+        return scheduled_task
 
-    def schedule_transmission(self, route, m_time, source_task, target_task, duration):
+    def new_session(self):
+        if self._current_session:
+            self._transmission_sessions.append(self._current_session)
+        self._current_session = []
+
+    def cancel_session(self):
+        for transmission in self._current_session:
+            transmission.cancel()
+
+    def schedule_transmission(self, route, source_cpu, target_cpu, m_time, source_task, target_task, duration):
+        if not route:
+            return ScheduledEmptyTransmission(source_task, target_task, source_cpu, target_cpu, m_time)
+
         transmission = ScheduledTransmission(source_task, target_task, duration, route)
         for segment_source, segment_target in route:
             m_time = self.find_transmission_time_range(transmission, m_time,
@@ -194,6 +235,8 @@ class System:
             transmission.add_segment(segment_source, task_in, segment_target, task_out)
             m_time += duration
             assert transmission.end_time() == m_time
+
+        self._current_session.append(transmission)
         return transmission
 
     @staticmethod
