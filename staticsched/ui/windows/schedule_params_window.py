@@ -41,9 +41,9 @@ class SchedulerParamsWindow:
         self.task_dag = task_dag
         self.system_graph = system_graph
 
-        self.queue_generation_policy = StringVar(value=list(QUEUE_GENERATION_POLICIES.keys())[0])
-        self.cpu_prioritization_policy = StringVar(value=list(CPU_PRIORITIZATION_POLICIES.keys())[0])
-        self.scheduler_type = StringVar(value=list(SCHEDULERS.keys())[0])
+        self.queue_generation_policy = StringVar(value=sorted(list(QUEUE_GENERATION_POLICIES.keys()))[0])
+        self.cpu_prioritization_policy = StringVar(value=sorted(list(CPU_PRIORITIZATION_POLICIES.keys()))[0])
+        self.scheduler_type = StringVar(value=sorted(list(SCHEDULERS.keys()))[0])
         self.duplex = BooleanVar(value=False)
         self.io_cpu = BooleanVar(value=True)
 
@@ -56,11 +56,11 @@ class SchedulerParamsWindow:
         self.frame.pack(fill='both', expand=True)
 
         make_entry(self.frame, "queue_generation_policy", self.queue_generation_policy,
-                   widget=Combobox, values=list(QUEUE_GENERATION_POLICIES.keys()))
+                   widget=Combobox, values=sorted(list(QUEUE_GENERATION_POLICIES.keys())))
         make_entry(self.frame, "cpu_prioritization_policy", self.cpu_prioritization_policy,
-                   widget=Combobox, values=list(CPU_PRIORITIZATION_POLICIES.keys()))
+                   widget=Combobox, values=sorted(list(CPU_PRIORITIZATION_POLICIES.keys())))
         make_entry(self.frame, "scheduler_type", self.scheduler_type,
-                   widget=Combobox, values=list(SCHEDULERS.keys()))
+                   widget=Combobox, values=sorted(list(SCHEDULERS.keys())))
         make_entry(self.frame, "duplex", self.duplex, widget=Checkbutton)
         make_entry(self.frame, "io_cpu", self.io_cpu, widget=Checkbutton)
 
