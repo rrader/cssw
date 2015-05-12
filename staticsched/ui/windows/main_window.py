@@ -1,11 +1,6 @@
 import json
 from tkinter import *
 from tkinter import simpledialog, filedialog, ttk, messagebox
-from staticsched.graph_analytics.cpu_priorities import CohesionCPUPrioritizationPolicy
-from staticsched.graph_analytics.gantt import System
-from staticsched.graph_analytics.router import DFSRouter
-from staticsched.graph_analytics.scheduler.schedulers import Scheduler
-from staticsched.ui.gantt_ui import draw_gantt_diagram
 
 from staticsched.ui.widgets.graph_canvas import CanvasFrame
 from staticsched.ui.windows.graph_params_window import GraphParamsWindow
@@ -13,9 +8,11 @@ from staticsched.ui.notification_consts import *
 from staticsched.ui.notifications import notify, subscribe
 from staticsched.graph_analytics.analyse import find_all_cycles, is_connected, find_critical_path, \
     find_all_critical_paths
-from staticsched.graph_analytics.task_queues import QueueGenerationPolicy3, QueueGenerationPolicy4, QueueGenerationPolicy16
+from staticsched.graph_analytics.task_queues import QueueGenerationPolicy3, QueueGenerationPolicy4, \
+    QueueGenerationPolicy16
 from staticsched.graph_analytics.raw_graph import DAG, Graph
 from staticsched.ui.table_window import TableWindow
+from staticsched.ui.windows.schedule_params_window import SchedulerParamsWindow
 
 
 def request_edge_weight(edge, ns):
@@ -161,16 +158,7 @@ class UI:
                     "Queue #16")
 
     def schedule(self):
-        system = System(self.system_graph, duplex=True, has_io_cpu=True)
-        router = DFSRouter(self.system_graph)
-
-        scheduler = Scheduler(self.task_dag, self.system_graph,
-                              QueueGenerationPolicy3(),
-                              CohesionCPUPrioritizationPolicy(),
-                              system,
-                              router)
-        scheduler.schedule_dag()
-        draw_gantt_diagram(system)
+        SchedulerParamsWindow(self.root, self.task_dag, self.system_graph)
 
     def generate_graph(self):
         GraphParamsWindow(self.root)

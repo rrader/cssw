@@ -128,7 +128,3 @@ class ModellingNeighbourScheduler(ModellingTransferCPUSelector,
     Tries to schedule on any CPU to get the best time
     """
     pass
-
-
-# Scheduler = AdvanceNeighbourScheduler
-Scheduler = ModellingNeighbourScheduler
