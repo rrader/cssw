@@ -164,8 +164,8 @@ class DAG(GeneralGraph):
             added_edges_count += 1
         else:
             weight = int(sum_edges_weight - sum_edges_weight_actual)
-            if weight < 0:
-                weight = 0
+            if weight <= 0:
+                weight = 1
             last_edge.weight = weight
             expected_weight = norm_weight(weight, min_edge_weight, max_edge_weight)
             if expected_weight != weight:
