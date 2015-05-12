@@ -2,6 +2,10 @@ from staticsched.graph_analytics.cpu_priorities import BaseCPUPrioritizationPoli
 from staticsched.graph_analytics.gantt import System
 from staticsched.graph_analytics.raw_graph import DAG, Graph
 from staticsched.graph_analytics.router import Router
+from staticsched.graph_analytics.scheduler.cpu_selectors import PriorityCPUSelector, NearestTransferCPUSelector, \
+    ModellingTransferCPUSelector
+from staticsched.graph_analytics.scheduler.transmit_schedulers import NoAdvanceTransmissionScheduler, \
+    AdvanceTransmissionScheduler
 from staticsched.graph_analytics.task_queues import BaseQueueGenerationPolicy
 
 
@@ -51,12 +55,12 @@ class BaseScheduler:
 
         while not task_queue.done(m_time):
             ready_tasks = task_queue.ready(m_time)
-            successful_iteration = True
-            while ready_tasks and successful_iteration:
-                successful_iteration = False
+            while ready_tasks:
                 for task in ready_tasks:
-                    successful_iteration = successful_iteration or \
-                                           self.schedule_task(m_time, task)
+                    if self.schedule_task(m_time, task):
+                        break
+                else:
+                    break
                 ready_tasks = task_queue.ready(m_time)
 
             m_time += 1
@@ -83,44 +87,47 @@ class BaseScheduler:
     def cpu_priorities(self):
         return self._cpu_priorities_policy.get_priorities(self._system_graph)
 
-
-class DummyScheduler(BaseScheduler):
-    def choose_cpu(self, m_time, task):
-        cpus = self._system.free_alu_cpus(m_time)
-        if cpus:
-            return sorted(cpus, key=lambda cpu: self.cpu_priorities().index(cpu))[0]
-
-    def schedule_transmits(self, task, m_time, target_cpu):
-        max_time = m_time
-        for edge in self._dag.edges_to_node(task):
-            max_time = max(max_time, self.schedule_transmit(edge, m_time, target_cpu))
-        return max_time
-
-    def schedule_transmit(self, edge, m_time, target_cpu):
-        source_cpus = self._system.cpus_by_scheduled_task(edge.source.n_id)
-        assert len(source_cpus) == 1
-        source_cpu = source_cpus[0].cpu_id
-
-        route = self.get_route(m_time, source_cpu, target_cpu)
-        if route:
-            m_time = self._system.schedule_transmission(route, m_time, edge.source, edge.target, edge.weight)
-        return m_time
-
     def get_route(self, m_time, source_cpu, target_cpu):
         route = self._router.route(m_time, source_cpu, target_cpu)
         route = [node.n_id for node in route]
         route = list(zip(route, route[1:]))
         return route
 
-#
-# class SchedulerWithTransmits(BaseScheduler):
-#     def schedule_task(self, m_time, task):
-#         cpus = self.system.free_alu_cpus(m_time)
-#         if cpus:
-#             chosen_cpu = sorted(cpus, key=lambda cpu: cpu_priorities.index(cpu))[0]
-#             self.system.schedule(task.n_id, m_time, task.weight, chosen_cpu)
-#             return True
-#         return False
-#
 
-Scheduler = DummyScheduler
+class DummyScheduler(PriorityCPUSelector, NoAdvanceTransmissionScheduler,
+                     BaseScheduler):
+    """
+    Schedules DAG by CPU priorities
+    """
+    pass
+
+
+class NeighbourScheduler(NearestTransferCPUSelector,
+                         NoAdvanceTransmissionScheduler,
+                         BaseScheduler):
+    """
+    Schedules DAG by neighbour appointment (no advance transmits)
+    """
+    pass
+
+
+class AdvanceNeighbourScheduler(NearestTransferCPUSelector,
+                                AdvanceTransmissionScheduler,
+                                BaseScheduler):
+    """
+    Schedules DAG by neighbour appointment (advance transmits)
+    """
+    pass
+
+
+class ModellingNeighbourScheduler(ModellingTransferCPUSelector,
+                                  AdvanceTransmissionScheduler,
+                                  BaseScheduler):
+    """
+    Schedules DAG by neighbour appointment (advance transmits)
+    Tries to schedule on any CPU to get the best time
+    """
+    pass
+
+
+Scheduler = AdvanceNeighbourScheduler

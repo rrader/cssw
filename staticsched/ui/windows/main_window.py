@@ -4,7 +4,7 @@ from tkinter import simpledialog, filedialog, ttk, messagebox
 from staticsched.graph_analytics.cpu_priorities import CohesionCPUPrioritizationPolicy
 from staticsched.graph_analytics.gantt import System
 from staticsched.graph_analytics.router import DFSRouter
-from staticsched.graph_analytics.scheduler import Scheduler
+from staticsched.graph_analytics.scheduler.schedulers import Scheduler
 from staticsched.ui.gantt_ui import draw_gantt_diagram
 
 from staticsched.ui.widgets.graph_canvas import CanvasFrame
@@ -45,7 +45,7 @@ class UI:
         subscribe(GRAPH_GENERATED, self.update_dag, ns="DAG_GENERATOR")
 
         self.open_dag(open("saved/dag1"))
-        self.open_sg(open("saved/4diag"))
+        self.open_sg(open("saved/3line"))
         self.schedule()
 
     def build(self):

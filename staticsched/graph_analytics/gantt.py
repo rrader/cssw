@@ -33,44 +33,63 @@ class ScheduledTransmission:
     def get_task_meta(self, task):
         return self._segment_meta[task]
 
+    def end_time(self):
+        return max(segment.range[1] for segment in self._segments)
+
 
 class ScheduledTransmissionSegment:
     INGOING = 0
     OUTGOING = 1
 
-    def __init__(self, transmission, start, end, direction):
+    def __init__(self, transmission, start, end, communication_cpu, direction):
         self.range = start, end
         self.transmission = transmission
         self.direction = direction
+        self.communication_cpu = communication_cpu
 
     def meta(self):
         return self.transmission.get_task_meta(self)
 
 
 class Link:
-    def __init__(self, link_id, duplex):
+    def __init__(self, cpu, link_id, duplex):
+        self.cpu = cpu
         self.duplex = duplex
         self.link_id = link_id
         self._io_tasks = []
 
-    def schedule_transmission(self, transmission, m_time, duration, direction):
-        task = ScheduledTransmissionSegment(transmission, m_time, m_time + duration, direction)
+    def schedule_transmission(self, transmission, m_time, duration, direction, communication_cpu):
+        task = ScheduledTransmissionSegment(transmission, m_time, m_time + duration,
+                                            communication_cpu, direction)
         self._io_tasks.append(task)
         return task
 
-    def is_link_free(self, m_time, direction):
+    def is_link_free(self, m_time, direction=None, communication_cpu=None):
+        # if not self.cpu._has_io_cpu and not self.cpu.is_alu_free(m_time):
+        #     return False
+
         for segment in self._io_tasks:
             start, end = segment.range
             if start <= m_time < end:
+                if not direction:
+                    # disrespect direction/duplex
+                    return False
+
                 if not self.duplex:
                     return False
                 else:
+                    # same direction is forbidden
                     if segment.direction == direction:
                         return False
+                    else:
+                        if segment.communication_cpu != communication_cpu:
+                            # duplex only for bi-directional communication
+                            # between same CPUs
+                            return False
         return True
 
-    def is_link_free_duration(self, m_time, duration, direction):
-        return all(self.is_link_free(time, direction)
+    def is_link_free_duration(self, m_time, duration, direction, communication_cpu):
+        return all(self.is_link_free(time, direction, communication_cpu)
                    for time in range(m_time, m_time + duration)
                    )
 
@@ -78,7 +97,7 @@ class Link:
 class CPU:
     def __init__(self, cpu_id, links, duplex, has_io_cpu):
         self.cpu_id = cpu_id
-        self._links = [Link(link_id, duplex) for link_id in range(links)]
+        self._links = [Link(self, link_id, duplex) for link_id in range(links)]
         self._alu_tasks = []
         self._has_io_cpu = has_io_cpu
 
@@ -86,7 +105,9 @@ class CPU:
         return any(task.task_name == task_name for task in self._alu_tasks)
 
     def is_alu_free(self, m_time):
-        # respect io cpu
+        if not self._has_io_cpu and any(not link.is_link_free(m_time) for link in self._links):
+            return False
+
         for task in self._alu_tasks:
             start, end = task.range
             if start <= m_time < end:
@@ -98,19 +119,30 @@ class CPU:
                    for time in range(m_time, m_time + duration)
                    )
 
-    def has_free_link(self, m_time, duration, direction):
-        return any(link.is_link_free_duration(m_time, duration, direction) for link in self._links)
+    def has_free_link(self, m_time, duration, direction, communication_cpu):
+        if not self._has_io_cpu and not self.is_alu_free_duration(m_time, duration):
+            return False
 
-    def any_free_link(self, m_time, duration, direction):
-        return [link for link in self._links if link.is_link_free_duration(m_time, duration, direction)]
+        return any(link.is_link_free_duration(m_time, duration, direction, communication_cpu)
+                   for link in self._links)
+
+    def any_free_link(self, m_time, duration, direction, communication_cpu):
+        if not self._has_io_cpu and not self.is_alu_free_duration(m_time, duration):
+            return []
+
+        return [link for link in self._links
+                if link.is_link_free_duration(m_time, duration, direction, communication_cpu)]
 
     def schedule_calculation(self, task_name, m_time, duration):
         task = ScheduledTask(task_name, m_time, m_time + duration)
         self._alu_tasks.append(task)
 
-    def schedule_transmission(self, transmission, m_time, duration, direction):
-        link = self.any_free_link(m_time, duration, direction)[0]
-        return link.schedule_transmission(transmission, m_time, duration, direction)
+    def get_scheduled_task(self, task_name):
+        return [task for task in self._alu_tasks if task.task_name == task_name][0]
+
+    def schedule_transmission(self, transmission, m_time, duration, direction, communication_cpu):
+        link = self.any_free_link(m_time, duration, direction, communication_cpu)[0]
+        return link.schedule_transmission(transmission, m_time, duration, direction, communication_cpu)
 
     def finished_tasks(self, m_time):
         return [task.task_name for task in self._alu_tasks if m_time >= task.range[1]]
@@ -152,14 +184,17 @@ class System:
                                                        self._cpus[segment_target])
             task_out = self._cpus[segment_source].schedule_transmission(transmission, m_time,
                                                                         duration,
-                                                                        ScheduledTransmissionSegment.OUTGOING)
+                                                                        ScheduledTransmissionSegment.OUTGOING,
+                                                                        segment_target)
             task_in = self._cpus[segment_target].schedule_transmission(transmission, m_time,
                                                                        duration,
-                                                                       ScheduledTransmissionSegment.INGOING)
+                                                                       ScheduledTransmissionSegment.INGOING,
+                                                                       segment_source)
 
             transmission.add_segment(segment_source, task_in, segment_target, task_out)
             m_time += duration
-        return m_time
+            assert transmission.end_time() == m_time
+        return transmission
 
     @staticmethod
     def find_transmission_time_range(transmission, m_time, segment_source_cpu, segment_target_cpu):
@@ -167,11 +202,13 @@ class System:
         ingoing_time_found = False
         while (not ingoing_time_found) or (not outgoing_time_found):
             while not segment_source_cpu.has_free_link(m_time, transmission.duration,
-                                                       ScheduledTransmissionSegment.OUTGOING):
+                                                       ScheduledTransmissionSegment.OUTGOING,
+                                                       segment_target_cpu.cpu_id):
                 m_time += 1
             outgoing_time_found = True
             while not segment_target_cpu.has_free_link(m_time, transmission.duration,
-                                                       ScheduledTransmissionSegment.INGOING):
+                                                       ScheduledTransmissionSegment.INGOING,
+                                                       segment_source_cpu.cpu_id):
                 m_time += 1
                 outgoing_time_found = False
             ingoing_time_found = True
