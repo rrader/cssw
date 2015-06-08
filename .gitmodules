@@ -1,0 +1,3 @@
+[submodule "docs/build-script"]
+	path = docs/build-script
+	url = https://github.com/rrader/laas.git

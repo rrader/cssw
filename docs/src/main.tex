@@ -1,0 +1,48 @@
+\documentclass[ukrainian,utf8,nostitching,14pt]{eskdtext}
+
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{cyrtimes}
+\usepackage{mathtext}
+\usepackage{tabularx}
+\usepackage{listings}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{indentfirst}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{rotating}
+\ESKDsectStyle{section}{\Large\bfseries}
+% \ESKDsectSkip{section}{10pt}{5pt}
+\renewcommand{\baselinestretch}{1.5} % Задаём единичный межстрочный интервал
+
+\usepackage{chngcntr}
+\counterwithin{figure}{section}
+\counterwithin{table}{section}
+
+\ESKDsignature{ИАЛЦ 466346.002 ПЗ}
+\ESKDauthor{Радер Р.І.}
+\ESKDchecker{Русанова О.В.}
+\ESKDdocName{Пояснювальна записка}
+\ESKDgroup{НТУУ КПИ \\ група ІО-41м}
+
+\renewcommand{\labelenumi}{\arabic{enumi}. }
+
+\begin{document}
+\lstset{
+basicstyle=\footnotesize,
+numberstyle=\tiny,
+tabsize=4,
+breaklines=true,
+title=\lstname
+}
+
+\tableofcontents
+\include{task}
+\include{algorithm}
+\include{program}
+\include{results}
+\include{conclusions}
+\include{literature}
+\include{source}
+\end{document}
