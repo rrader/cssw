@@ -1,6 +1,3 @@
-import random
-
-
 def cpu_by_priority(cpus, cpu_priorities):
     return sorted(cpus, key=lambda cpu: cpu_priorities.index(cpu))[0]
 
@@ -28,14 +25,13 @@ class NearestTransferCPUSelector:
 
                     transfer_time_from_cpu = transfer_times.get(source_cpu, 0)
                     transfer_times[source_cpu] = transfer_time_from_cpu + len(route) * edge.weight
-                cpus_transfer_time[target_cpu] = max(transfer_times.values(), default=0)
+                cpus_transfer_time[target_cpu] = sum(transfer_times.values())
 
             min_transfer_time = min(cpus_transfer_time.values())
             cpus_with_min_transfer_time = [cpu_id for cpu_id, transfer_time in cpus_transfer_time.items()
                                            if transfer_time == min_transfer_time]
 
             return cpu_by_priority(cpus_with_min_transfer_time, self.cpu_priorities())
-            # return random.choice(cpus_with_min_transfer_time)
 
 
 class ModellingTransferCPUSelector:

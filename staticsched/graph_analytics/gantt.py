@@ -89,6 +89,10 @@ class Link:
         self._io_tasks.remove(task)
 
     def is_link_free(self, m_time, direction=None, communication_cpu=None):
+        link_with_com_cpu = self.cpu.get_link_with_cpu_at_time(m_time, communication_cpu)
+        if link_with_com_cpu and link_with_com_cpu != self:
+            return False
+
         for segment in self._io_tasks:
             start, end = segment.range
             if start <= m_time < end:
@@ -113,6 +117,12 @@ class Link:
         return all(self.is_link_free(time, direction, communication_cpu)
                    for time in range(m_time, m_time + duration)
                    )
+
+    def get_connected_cpu_at_time(self, m_time):
+        for segment in self._io_tasks:
+            start, end = segment.range
+            if start <= m_time < end:
+                return segment.communication_cpu
 
 
 class CPU:
@@ -154,6 +164,11 @@ class CPU:
         return [link for link in self._links
                 if link.is_link_free_duration(m_time, duration, direction, communication_cpu)]
 
+    def get_link_with_cpu_at_time(self, m_time, communication_cpu):
+        for link in self._links:
+            if link.get_connected_cpu_at_time(m_time) == communication_cpu:
+                return link
+
     def schedule_calculation(self, task_name, m_time, duration):
         task = ScheduledTask(task_name, m_time, m_time + duration, self)
         self._alu_tasks.append(task)
@@ -183,6 +198,8 @@ class System:
         self._transmission_sessions = []
         self._current_session = []
         for node in graph.nodes.values():
+            links_count = min(node.weight, len(self._graph.get_neighbours(node)))
+            print(node.weight, "->", links_count)
             cpu = CPU(cpu_id=node.n_id, links=node.weight, duplex=duplex, has_io_cpu=has_io_cpu)
             self._cpus[node.n_id] = cpu
 

@@ -41,8 +41,8 @@ class UI:
         subscribe(NODE_WEIGHT_REQUEST, request_node_weight, ns="ALL")
         subscribe(GRAPH_GENERATED, self.update_dag, ns="DAG_GENERATOR")
 
-        self.open_dag(open("saved/dag1"))
-        self.open_sg(open("saved/3line"))
+        self.open_dag(open("saved/test1"))
+        self.open_sg(open("saved/test1s"))
         self.schedule()
 
     def build(self):

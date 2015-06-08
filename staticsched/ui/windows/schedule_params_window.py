@@ -46,6 +46,7 @@ class SchedulerParamsWindow:
         self.scheduler_type = StringVar(value=sorted(list(SCHEDULERS.keys()))[0])
         self.duplex = BooleanVar(value=False)
         self.io_cpu = BooleanVar(value=True)
+        self.performance = IntVar(value=1)
 
         self.root = Toplevel(root)
         self.root.wm_title("Scheduler params")
@@ -63,6 +64,7 @@ class SchedulerParamsWindow:
                    widget=Combobox, values=sorted(list(SCHEDULERS.keys())))
         make_entry(self.frame, "duplex", self.duplex, widget=Checkbutton)
         make_entry(self.frame, "io_cpu", self.io_cpu, widget=Checkbutton)
+        make_entry(self.frame, "performance", self.performance)
 
         button = Button(self.frame, text='okay', command=self.do_generate)
         button.pack(side='right')
