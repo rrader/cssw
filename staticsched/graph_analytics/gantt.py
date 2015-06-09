@@ -190,6 +190,9 @@ class CPU:
     def scheduled_tasks(self):
         return [task.task_name for task in self._alu_tasks]
 
+    def last_tick(self):
+        return max((task.range[1] for task in self._alu_tasks), default=0)
+
 
 class System:
     def __init__(self, graph: Graph, duplex, has_io_cpu):
@@ -199,7 +202,6 @@ class System:
         self._current_session = []
         for node in graph.nodes.values():
             links_count = min(node.weight, len(self._graph.get_neighbours(node)))
-            print(node.weight, "->", links_count)
             cpu = CPU(cpu_id=node.n_id, links=node.weight, duplex=duplex, has_io_cpu=has_io_cpu)
             self._cpus[node.n_id] = cpu
 
@@ -279,3 +281,6 @@ class System:
         while not cpu.is_alu_free_duration(m_time, duration):
             m_time += 1
         return m_time
+
+    def duration(self):
+        return max((cpu.last_tick() for cpu in self._cpus.values()), default=0)

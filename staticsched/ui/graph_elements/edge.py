@@ -42,7 +42,8 @@ class EdgeDrawController:
             offset = SMALL_OFFSET if dx > 0 else -SMALL_OFFSET
             end_point = (e[0] - offset, e[1] - offset)
         # middle_points = self.get_bezier_points(start_point, end_point)
-        coords = start_point + end_point
+        coords = start_point + (start_point[0] + (end_point[0] - start_point[0])/2 - (end_point[1] - start_point[1])*0.3,
+                                start_point[1] + (end_point[1] - start_point[1])/2 - (end_point[0] - start_point[0])*0.3) + end_point
         return coords
 
     def mid_coords(self):
@@ -90,11 +91,12 @@ class GraphEdgeDrawController(EdgeDrawController):
     def create_line(self, coords):
         return self.canvas.create_line(*coords,
                                        width=2, fill=self.get_default_color(),
-                                       tags=(self.get_tag(), self.get_tag() + "_l", "line", "edge"))
+                                       tags=(self.get_tag(), self.get_tag() + "_l", "line", "edge"),
+                                       smooth=True)
 
     def update_edge(self, msg):
         super().update_edge(msg)
-        # self.canvas.itemconfig(self._weight, text="")
+        self.canvas.itemconfig(self._weight, text="")
 
     def create_edge(self):
         super().create_edge()
@@ -108,4 +110,5 @@ class DAGEdgeDrawController(EdgeDrawController):
     def create_line(self, coords):
         return self.canvas.create_line(*coords,
                                        width=2, fill=self.get_default_color(), arrow="last",
-                                       tags=(self.get_tag(), self.get_tag() + "_l", "line", "edge"))
+                                       tags=(self.get_tag(), self.get_tag() + "_l", "line", "edge"),
+                                       smooth=True)

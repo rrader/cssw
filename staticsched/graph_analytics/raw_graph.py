@@ -56,9 +56,11 @@ class GeneralGraph:
             node.n_id = str(i)
 
 
-def norm_weight(weight, min_w, max_w):
+def norm_weight(weight, min_w, max_w, avg):
     if weight < min_w:
         return min_w
+    elif avg > max_w:
+        return weight
     elif weight > max_w:
         return max_w
     else:
@@ -130,7 +132,7 @@ class DAG(GeneralGraph):
     def generate(cls,
                  min_weight, max_weight,
                  count, connectivity, connections_percent,
-                 min_edge_weight=None, max_edge_weight=None):
+                 min_edge_weight=1, max_edge_weight=9999):
         graph = DAG()
         sum_weight = 0
         for i in range(count):
@@ -148,12 +150,13 @@ class DAG(GeneralGraph):
         sum_edges_weight_actual = 0
         last_edge = None
         added_edges_count = 0
+        average_edge_weight = sum_edges_weight / edges_count
         for source, target in sample(pairs, edges_count):
             average_edge_weight = max(1, ((sum_edges_weight - sum_edges_weight_actual) / (edges_count - added_edges_count)))
             weight = int(normalvariate(average_edge_weight, average_edge_weight/4))
-            weight = norm_weight(weight, min_edge_weight, max_edge_weight)
+            weight = norm_weight(weight, min_edge_weight, max_edge_weight, average_edge_weight)
             if sum_edges_weight - (sum_edges_weight_actual + weight) < 0:
-                weight = int(sum_edges_weight - sum_edges_weight_actual)
+                weight = max(1, int(sum_edges_weight - sum_edges_weight_actual))
                 last_edge = graph.add_edge(source, target, weight)
                 sum_edges_weight_actual += weight
                 warnings.warn("Stopped, maximum reached: last edge weight was {} < {} < {}".
@@ -167,15 +170,16 @@ class DAG(GeneralGraph):
             if weight <= 0:
                 weight = 1
             last_edge.weight = weight
-            expected_weight = norm_weight(weight, min_edge_weight, max_edge_weight)
+            expected_weight = norm_weight(weight, min_edge_weight, max_edge_weight, average_edge_weight)
             if expected_weight != weight:
                 warnings.warn("Last edge weight was out of bounds {} < {} < {}".
                               format(min_edge_weight, weight, max_edge_weight))
 
         graph.arrange()
-        print("Correlation")
-        print("actual: ", graph.correlatio(), "; expected: ", connectivity)
         return graph
+
+    def duration_on_one_cpu(self):
+        return sum(node.weight for node in self.nodes.values())
 
 
 class Graph(GeneralGraph):

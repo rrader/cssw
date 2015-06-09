@@ -42,7 +42,7 @@ class UI:
         subscribe(GRAPH_GENERATED, self.update_dag, ns="DAG_GENERATOR")
 
         self.open_dag(open("saved/test1"))
-        self.open_sg(open("saved/test1s"))
+        self.open_sg(open("saved/thor"))
         self.schedule()
 
     def build(self):
