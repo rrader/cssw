@@ -164,17 +164,101 @@ class QueueGenerationPolicy16(BaseQueueGenerationPolicy):
 \end{lstlisting}
 
 
-\subsection{Процесс моделирования}
+\subsection{Процес моделювання}
 
-TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Для моделювання написані тестові скрипти мовою Python, які запускають генерацію графу та планування в текстовому режимі без запуску графічної оболонки. Приклад скрипта наданий у лістингу \ref{lst:test}.
+
+\begin{lstlisting}[language=Python,caption={Вихідний код скрипта порівняння 3 та 4 черги для алгоритму 6 з 3 лінками},label=lst:test]
+
+def test(scale, connectivity, queue, scheduler_class, duplex, io_cpu, count=50):
+    system_graph = get_thor_system()
+    count = len(system_graph.nodes) * scale
+
+    system = System(system_graph,
+                    duplex=duplex,
+                    has_io_cpu=io_cpu)
+    router = DFSRouter(system_graph)
+
+    k_accels = []
+    k_efs = []
+    for i in range(count):
+        task_dag = DAG.generate(min_weight=5, max_weight=20,
+                                count=count, connectivity=connectivity,
+                                connections_percent=30)
+        scheduler = scheduler_class(
+            task_dag, system_graph, queue(), CohesionCPUPrioritizationPolicy(),
+            system, router)
+        scheduler.schedule_dag()
+        k_accel = task_dag.duration_on_one_cpu() / system.duration()
+        k_accels.append(k_accel)
+        k_ef = k_accel / len(system._cpus)
+        k_efs.append(k_ef)
+    k_accel_avg = sum(k_accels) / len(k_accels)
+    k_ef_avg = sum(k_efs) / len(k_efs)
+    return k_accel_avg, k_ef_avg
+
+
+def get_thor_system():
+    system_graph = Graph()
+    with open("saved/thor") as thor_file:
+        system_graph_file = json.load(thor_file)
+        Graph.deserialize(system_graph, system_graph_file, override_node={"weight": 3})
+    return system_graph
+
+
+def get_grid_system():
+    system_graph = Graph()
+    with open("saved/grid") as thor_file:
+        system_graph_file = json.load(thor_file)
+        Graph.deserialize(system_graph, system_graph_file)
+    return system_graph
+
+
+def loop(scale, queue, scheduler_class, duplex, io_cpu, count=50):
+    print(queue.__name__ + " ", end='')
+    print(scheduler_class.__name__ + " ", end='')
+    if duplex:
+        print("duplex; ", end='')
+    else:
+        print("no duplex; ", end='')
+    if io_cpu:
+        print("io_cpu; ", end='')
+    else:
+        print("no io_cpu; ", end='')
+    print("scale %d:1" % scale)
+
+    connectivity = 0.1
+    data = []
+    while connectivity < 1:
+        print(">>", connectivity)
+        accel, ef = test(scale=scale, connectivity=connectivity,
+                         queue=queue,
+                         scheduler_class=scheduler_class,
+                         duplex=duplex, io_cpu=io_cpu,
+                         count=count)
+        data.append("%s, %s" % (accel, ef))
+
+        connectivity += 0.1
+    print("\n".join(data))
+
+
+def main():
+    warnings.simplefilter("ignore")
+    scheduler_class = ModellingNeighbourScheduler
+    duplex = True
+    scale = 3
+    loop(scale, queue=QueueGenerationPolicy3, scheduler_class=scheduler_class,
+         duplex=duplex, io_cpu=True)
+    print("================")
+    loop(scale, queue=QueueGenerationPolicy4, scheduler_class=scheduler_class,
+         duplex=duplex, io_cpu=True)
+    print("================")
+
+if __name__ == "__main__":
+    main()
+
+\end{lstlisting}
+
 
 \subsection{Інструкція користувача}
 
@@ -184,7 +268,7 @@ TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       \begin{center}
         \includegraphics[width=\textwidth]{res/system_graph_new.png}
       \end{center}
-      \caption{Інтерфейс користувача вводу задачі}
+      \caption{Інтерфейс користувача вводу системи}
     \label{fig:system_graph_2}
     \end{figure}
 
@@ -196,7 +280,7 @@ TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     \label{fig:gui_graph_2}
     \end{figure}
 
-Можливе зберігання та відкриття збережених графів задач та систем через меню File.
+Можливе зберігання та відкриття збережених графів задач та систем через меню File. Меню DAG надає можливість згенерувати випадковий граф а також виконувати операції із вже відкритим графом, такі як генерація трьох черг та пошук критичного шляху.
 
 Для запуску процесу планування використовується пункт меню Scheduler -> Schedule.
 Налаштування планувальника на рис. \ref{fig:sched_params}
@@ -207,4 +291,14 @@ TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       \end{center}
       \caption{Налаштування планувальника}
     \label{fig:sched_params}
+    \end{figure}
+
+Після запуску планувальника користувач побачить згенеровану діаграму Ганта на рис. \ref{fig:gantt}.
+
+    \begin{figure}[h!]
+      \begin{center}
+        \includegraphics[width=\textwidth]{res/gantt.png}
+      \end{center}
+      \caption{Діаграма Ганта}
+    \label{fig:gantt}
     \end{figure}

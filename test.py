@@ -10,7 +10,7 @@ from staticsched.graph_analytics.task_queues import QueueGenerationPolicy3, Queu
 
 
 def test(scale, connectivity, queue, scheduler_class, duplex, io_cpu, count=50):
-    system_graph = get_grid_system()
+    system_graph = get_thor_system()
     count = len(system_graph.nodes) * scale
 
     system = System(system_graph,
@@ -41,7 +41,7 @@ def get_thor_system():
     system_graph = Graph()
     with open("saved/thor") as thor_file:
         system_graph_file = json.load(thor_file)
-        Graph.deserialize(system_graph, system_graph_file)
+        Graph.deserialize(system_graph, system_graph_file, override_node={"weight": 3})
     return system_graph
 
 
@@ -83,25 +83,22 @@ def loop(scale, queue, scheduler_class, duplex, io_cpu, count=50):
 
 def main():
     warnings.simplefilter("ignore")
-    scheduler_class = ModellingNeighbourScheduler
+    scheduler_class = ModellingNeighbourScheduler  #AdvanceNeighbourScheduler
     duplex = True
-    scale = 1
-    # loop(scale, queue=QueueGenerationPolicy3, scheduler_class=scheduler_class,
-    #      duplex=duplex, io_cpu=True)
-    # print("================")
-    # loop(scale, queue=QueueGenerationPolicy4, scheduler_class=scheduler_class,
-    #      duplex=duplex, io_cpu=True)
-    # print("================")
-    # loop(scale, queue=QueueGenerationPolicy16, scheduler_class=scheduler_class,
-    #      duplex=duplex, io_cpu=True)
-    # print("================")
+    scale = 3
+    loop(scale, queue=QueueGenerationPolicy3, scheduler_class=scheduler_class,
+         duplex=duplex, io_cpu=True)
+    print("================")
+    loop(scale, queue=QueueGenerationPolicy4, scheduler_class=scheduler_class,
+         duplex=duplex, io_cpu=True)
+    print("================")
 
-    accel, ef = test(scale=scale, connectivity=0.7,
-                     queue=QueueGenerationPolicy3,
-                     scheduler_class=scheduler_class,
-                     duplex=duplex, io_cpu=True,
-                     count=1)
-
+    # accel, ef = test(scale=scale, connectivity=0.7,
+    #                  queue=QueueGenerationPolicy3,
+    #                  scheduler_class=scheduler_class,
+    #                  duplex=duplex, io_cpu=True,
+    #                  count=1)
+    #
 
 if __name__ == "__main__":
     main()

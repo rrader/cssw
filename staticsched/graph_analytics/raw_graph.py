@@ -41,8 +41,9 @@ class GeneralGraph:
                 "edges": [edge.serialize_edge() for edge in self.edges]}
 
     @staticmethod
-    def deserialize(target_graph, graph_info):
+    def deserialize(target_graph, graph_info, override_node={}):
         for node in graph_info["nodes"]:
+            node.update(override_node)
             target_graph.add_node(**node)
         for edge in graph_info["edges"]:
             target_graph.add_edge(**edge)
