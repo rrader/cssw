@@ -9,7 +9,7 @@ from staticsched.ui.notifications import notify, subscribe
 from staticsched.graph_analytics.analyse import find_all_cycles, is_connected, find_critical_path, \
     find_all_critical_paths
 from staticsched.graph_analytics.task_queues import QueueGenerationPolicy3, QueueGenerationPolicy4, \
-    QueueGenerationPolicy16
+    QueueGenerationPolicy16, QueueGenerationPolicy2
 from staticsched.graph_analytics.raw_graph import DAG, Graph
 from staticsched.ui.table_window import TableWindow
 from staticsched.ui.windows.schedule_params_window import SchedulerParamsWindow
@@ -43,7 +43,7 @@ class UI:
 
         self.open_dag(open("saved/test1"))
         self.open_sg(open("saved/thor"))
-        self.schedule()
+        # self.schedule()
 
     def build(self):
         self.notebook = ttk.Notebook(self.root)
@@ -86,6 +86,7 @@ class UI:
         dag_menu.add_command(label="Check", command=self.dag_check)
         dag_menu.add_command(label="Reset marks", command=self.dag_reset_marks)
         dag_menu.add_command(label="Find critical path", command=self.find_critical_path)
+        dag_menu.add_command(label="Generate queue (method #2)", command=self.queue_2)
         dag_menu.add_command(label="Generate queue (method #3)", command=self.queue_3)
         dag_menu.add_command(label="Generate queue (method #4)", command=self.queue_4)
         dag_menu.add_command(label="Generate queue (method #16)", command=self.queue_16)
@@ -131,6 +132,19 @@ class UI:
         length, path = find_critical_path(self.task_dag)
         self.dag_frame.mark_nodes(path, color="green")
         TableWindow(self.root, ["node"], [[node] for node in path], "Critical path")
+
+    def queue_2(self):
+        paths_down = find_all_critical_paths(self.task_dag, forward=True, weight_based=True)
+        paths_up = find_all_critical_paths(self.task_dag, forward=False, weight_based=True)
+        max_critical_path = max(paths_down.items(), key=lambda item: (item[1][0], item[0]))
+        queue = QueueGenerationPolicy2().get_queue(self.task_dag)
+        print(queue)
+        TableWindow(self.root, ["node", "Tcrit<down>", "Tcrit<up>", "Tcrit<max>",
+                                "Critical path DOWN", "Critical path UP", "Critical path MAX"],
+                    [[node, paths_down[node][0], paths_up[node][0], max_critical_path[1][0],
+                      paths_down[node][1], paths_up[node][1], max_critical_path[1][1]]
+                     for node in queue],
+                    "Queue #2")
 
     def queue_3(self):
         paths = find_all_critical_paths(self.task_dag, forward=True, weight_based=True)
