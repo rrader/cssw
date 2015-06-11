@@ -1,1 +1,55 @@
-build-script/vagga.yaml
+containers:
+  latex:
+    setup:
+    - !Ubuntu trusty
+    - !UbuntuUniverse
+    - !Install [texlive, texlive-science, texlive-latex-extra, texlive-lang-cyrillic, scalable-cyrfonts-tex]
+    - !Sh |
+       sed -i '116 a \\\DeclareRobustCommand{\\No}{\\ifmmode{\\nfss@text{\\textnumero}}\\else\\textnumero\\fi}' /usr/share/texlive/texmf-dist/tex/generic/babel-russian/russianb.ldf
+
+commands:
+  shell: !Command
+    container: latex
+    run: bash
+    environ:
+      HOME: /tmp
+
+  pdflatex: !Command
+    container: latex
+    work-dir: /work/src
+    run: |
+      pdflatex -output-directory /work/output $@
+      pdflatex -output-directory /work/output $@
+    accepts-arguments: true
+    environ:
+      HOME: /tmp
+
+  pz: !Command
+    container: latex
+    work-dir: /work/src/pz
+    run: |
+      pdflatex -output-directory /work/output/pz main.tex
+      pdflatex -output-directory /work/output/pz main.tex
+    accepts-arguments: true
+    environ:
+      HOME: /tmp
+
+  tz: !Command
+    container: latex
+    work-dir: /work/src/tz
+    run: |
+      pdflatex -output-directory /work/output/tz main.tex
+      pdflatex -output-directory /work/output/tz main.tex
+    accepts-arguments: true
+    environ:
+      HOME: /tmp
+
+  oa: !Command
+    container: latex
+    work-dir: /work/src/oa
+    run: |
+      pdflatex -output-directory /work/output/oa main.tex
+      pdflatex -output-directory /work/output/oa main.tex
+    accepts-arguments: true
+    environ:
+      HOME: /tmp
