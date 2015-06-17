@@ -8,8 +8,8 @@ from staticsched.ui.notification_consts import *
 from staticsched.ui.notifications import notify, subscribe
 from staticsched.graph_analytics.analyse import find_all_cycles, is_connected, find_critical_path, \
     find_all_critical_paths
-from staticsched.graph_analytics.task_queues import QueueGenerationPolicy3, QueueGenerationPolicy4, \
-    QueueGenerationPolicy16, QueueGenerationPolicy2
+from staticsched.graph_analytics.task_queues import QueueGenerationPolicy2, QueueGenerationPolicy3, \
+    QueueGenerationPolicy12, QueueGenerationPolicy4, QueueGenerationPolicy16
 from staticsched.graph_analytics.raw_graph import DAG, Graph
 from staticsched.ui.table_window import TableWindow
 from staticsched.ui.windows.schedule_params_window import SchedulerParamsWindow
@@ -88,8 +88,9 @@ class UI:
         dag_menu.add_command(label="Find critical path", command=self.find_critical_path)
         dag_menu.add_command(label="Generate queue (method #2)", command=self.queue_2)
         dag_menu.add_command(label="Generate queue (method #3)", command=self.queue_3)
-        dag_menu.add_command(label="Generate queue (method #4)", command=self.queue_4)
-        dag_menu.add_command(label="Generate queue (method #16)", command=self.queue_16)
+        # dag_menu.add_command(label="Generate queue (method #4)", command=self.queue_4)
+        dag_menu.add_command(label="Generate queue (method #12)", command=self.queue_12)
+        # dag_menu.add_command(label="Generate queue (method #16)", command=self.queue_16)
 
         graph_menu = Menu(self.menu)
         self.menu.add_cascade(label="System graph", menu=graph_menu)
@@ -163,6 +164,16 @@ class UI:
         TableWindow(self.root, ["node", "Ncrit<down>", "Connectivity", "Critical path"],
                     [[node, paths[node][0], get_connectivity(node), paths[node][1]] for node in queue],
                     "Queue #4")
+
+    def queue_12(self):
+        paths = find_all_critical_paths(self.task_dag, forward=True, weight_based=False)
+        queue = QueueGenerationPolicy12().get_queue(self.task_dag)
+
+        def get_connectivity(node_id):
+            return len(self.task_dag.get_neighbours(self.task_dag.nodes[node_id], forward=True))
+        TableWindow(self.root, ["node", "Outgoing Edges"],
+                    [[node, get_connectivity(node)] for node in queue],
+                    "Queue #12")
 
     def queue_16(self):
         paths = find_all_critical_paths(self.task_dag, forward=False, weight_based=True)

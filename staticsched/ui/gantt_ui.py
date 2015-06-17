@@ -65,7 +65,7 @@ def draw_gantt_diagram(system):
 
     ax.grid(True, which="both")
     mng = plt.get_current_fig_manager()
-    mng.window.showMaximized()
+    # mng.window.showMaximized()
     plt.legend([Rectangle((0, 0), 1, 1, fc="lightgray"),
                 Rectangle((0, 0), 1, 1, fc="LimeGreen", hatch="\\"),
                 Rectangle((0, 0), 1, 1, fc="yellow", hatch="/")],

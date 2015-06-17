@@ -46,6 +46,14 @@ class QueueGenerationPolicy4(BaseQueueGenerationPolicy):
         return [path[0] for path in sorted(paths.items(), key=get_weight, reverse=True)]
 
 
+class QueueGenerationPolicy12(BaseQueueGenerationPolicy):
+    def get_queue(self, dag):
+        def get_weight(node_id):
+            node = dag.nodes[node_id]
+            return len(dag.get_neighbours(node, forward=True))
+        return [node[0] for node in sorted(dag.nodes.keys(), key=get_weight)]
+
+
 class QueueGenerationPolicy16(BaseQueueGenerationPolicy):
     def get_queue(self, dag):
         paths = find_all_critical_paths(dag, forward=False, weight_based=True)

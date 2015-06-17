@@ -5,8 +5,8 @@ from staticsched.graph_analytics.gantt import System
 from staticsched.graph_analytics.router import DFSRouter
 from staticsched.graph_analytics.scheduler.schedulers import AdvanceNeighbourScheduler, \
     ModellingNeighbourScheduler
-from staticsched.graph_analytics.task_queues import QueueGenerationPolicy3, QueueGenerationPolicy4, \
-    QueueGenerationPolicy16
+from staticsched.graph_analytics.task_queues import QueueGenerationPolicy2, QueueGenerationPolicy3, \
+    QueueGenerationPolicy12
 from staticsched.ui.gantt_ui import draw_gantt_diagram
 
 
@@ -21,9 +21,9 @@ def make_entry(parent, caption, var, widget=Entry, **options):
 
 
 QUEUE_GENERATION_POLICIES = {
+    "2": QueueGenerationPolicy2,
     "3": QueueGenerationPolicy3,
-    "4": QueueGenerationPolicy4,
-    "16": QueueGenerationPolicy16,
+    "12": QueueGenerationPolicy12,
 }
 
 CPU_PRIORITIZATION_POLICIES = {
